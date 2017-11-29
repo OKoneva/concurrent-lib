@@ -1,0 +1,30 @@
+# Logs
+logs
+*.log*
+
+# Target
+target/
+data-analyzing/target/
+data-processing/target/
+profile-mgmt-backend/target/
+hash-service/target
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# IDEA/Webstorm project files
+.idea
+*.iml
+
+#VSCode metadata
+.vscode
+
+# Mac files
+.DS_Store
+/mvn-run.txt
+
+# Python
+__pycache__/
+.python-version

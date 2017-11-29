@@ -1,0 +1,9 @@
+server:
+  port: ${app.port:8080}
+  host: localhost
+spring:
+  application:
+    name: conlib
+concurrentlib:
+  thread:
+    number: 2
