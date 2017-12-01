@@ -1,10 +1,11 @@
 package ru.okoneva.concurrentlib.adapter;
 
+import ru.okoneva.concurrentlib.domain.Session;
 import ru.okoneva.concurrentlib.domain.User;
-
-import java.util.List;
 
 public interface MyAdapter {
 
-    List<User> findUsers();
+    User findUser(int id);
+
+    Session generateSession(int taskId);
 }
