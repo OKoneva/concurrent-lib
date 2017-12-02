@@ -10,7 +10,6 @@ import ru.okoneva.concurrentlib.domain.Session;
 import ru.okoneva.concurrentlib.domain.SyncResponse;
 import ru.okoneva.concurrentlib.domain.User;
 
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +47,7 @@ public class MyServiceImpl implements MyService {
     private void startUserSearch(final int id) {
         new Thread(() -> {
             try {
-                TimeUnit.MILLISECONDS.sleep(getRandomDelay());
+                TimeUnit.MILLISECONDS.sleep(50);
                 final User user = new User(id, "User_" + id);
                 log.info("Найден юзер {}", user);
                 adapter.putResult(new AsyncResponse(user, AsyncResponse.Type.USER));
@@ -62,7 +61,7 @@ public class MyServiceImpl implements MyService {
         new Thread(() -> {
             Callable<Session> task = () -> {
                 try {
-                    TimeUnit.MILLISECONDS.sleep(getRandomDelay());
+                    TimeUnit.MILLISECONDS.sleep(50);
                     return new Session();
                 } catch (InterruptedException e) {
                     throw new IllegalStateException("task interrupted", e);
@@ -78,9 +77,4 @@ public class MyServiceImpl implements MyService {
         }).start();
     }
 
-    private static final Random random = new Random();
-
-    private static long getRandomDelay() {
-        return random.nextBoolean() ? 1000L : 3000L;
-    }
 }
