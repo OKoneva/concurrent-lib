@@ -1,13 +1,16 @@
 package ru.okoneva.concurrentlib.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.okoneva.concurrentlib.domain.Response;
+import ru.okoneva.concurrentlib.adapter.MyAdapter;
+import ru.okoneva.concurrentlib.domain.AsyncResponse;
 import ru.okoneva.concurrentlib.domain.Session;
+import ru.okoneva.concurrentlib.domain.SyncResponse;
 import ru.okoneva.concurrentlib.domain.User;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +21,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class MyServiceImpl implements MyService {
 
+    @Autowired
+    private final MyAdapter adapter = null;
+
     private final ExecutorService executor;
 
     public MyServiceImpl(@Value("${concurrentlib.thread.number}") final int nThreads) {
@@ -25,59 +31,38 @@ public class MyServiceImpl implements MyService {
         this.executor = Executors.newFixedThreadPool(nThreads);
     }
 
-    public Response findUser(final int id, final BlockingQueue<User> queue) {
+    public SyncResponse findUser(final int id) {
         if (id < 10) {
-            startUserSearch(id, queue);
-            return Response.ok();
+            startUserSearch(id);
+            return SyncResponse.ok();
         }
-        return Response.error("Id is " + id);
+        return SyncResponse.error("Id is " + id);
     }
 
     @Override
-    public Response generateSession(final BlockingQueue<Session> queue) {
-        startSessionGeneration(queue);
-        return Response.ok();
+    public SyncResponse generateSession() {
+        startSessionGeneration();
+        return SyncResponse.ok();
     }
 
-    private void startUserSearch1(final int id, final BlockingQueue<User> queue) {
-        new Thread(() -> {
-            Callable<User> task = () -> {
-                try {
-                    TimeUnit.SECONDS.sleep(2);
-                    return new User(id, "User_" + id);
-                } catch (InterruptedException e) {
-                    throw new IllegalStateException("task interrupted", e);
-                }
-            };
-            final User user;
-            try {
-                user = executor.submit(task).get();
-                log.info("Найден юзер {}", user);
-                queue.put(user);
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IllegalStateException("task interrupted", e);
-            }
-        }).start();
-    }
-
-    private void startUserSearch(final int id, final BlockingQueue<User> queue) {
+    private void startUserSearch(final int id) {
         new Thread(() -> {
             try {
-                TimeUnit.SECONDS.sleep(1);
+                TimeUnit.MILLISECONDS.sleep(getRandomDelay());
                 final User user = new User(id, "User_" + id);
                 log.info("Найден юзер {}", user);
-                queue.put(user);
+                adapter.putResult(new AsyncResponse(user, AsyncResponse.Type.USER));
             } catch (InterruptedException e) {
                 throw new IllegalStateException("task interrupted", e);
             }
         }).start();
     }
 
-    private void startSessionGeneration(final BlockingQueue<Session> queue) {
+    private void startSessionGeneration() {
         new Thread(() -> {
             Callable<Session> task = () -> {
                 try {
-                    TimeUnit.SECONDS.sleep(2);
+                    TimeUnit.MILLISECONDS.sleep(getRandomDelay());
                     return new Session();
                 } catch (InterruptedException e) {
                     throw new IllegalStateException("task interrupted", e);
@@ -86,10 +71,16 @@ public class MyServiceImpl implements MyService {
             final Session session;
             try {
                 session = executor.submit(task).get();
-                queue.put(session);
+                adapter.putResult(new AsyncResponse(session, AsyncResponse.Type.SESSION));
             } catch (InterruptedException | ExecutionException e) {
                 throw new IllegalStateException("task interrupted", e);
             }
         }).start();
+    }
+
+    private static final Random random = new Random();
+
+    private static long getRandomDelay() {
+        return random.nextBoolean() ? 1000L : 3000L;
     }
 }

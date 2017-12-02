@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Response {
+public class SyncResponse {
     private Result result;
     @Getter
     private String message;
@@ -22,11 +22,11 @@ public boolean isError() {
         ERROR
     }
 
-    public static Response ok() {
-        return new Response(Result.OK, null);
+    public static SyncResponse ok() {
+        return new SyncResponse(Result.OK, null);
     }
 
-    public static Response error(final String message) {
-        return new Response(Result.ERROR, message);
+    public static SyncResponse error(final String message) {
+        return new SyncResponse(Result.ERROR, message);
     }
 }

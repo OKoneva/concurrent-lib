@@ -1,14 +1,12 @@
 package ru.okoneva.concurrentlib.service;
 
-import ru.okoneva.concurrentlib.domain.Response;
-import ru.okoneva.concurrentlib.domain.Session;
-import ru.okoneva.concurrentlib.domain.User;
-
-import java.util.concurrent.BlockingQueue;
+import ru.okoneva.concurrentlib.domain.SyncResponse;
 
 public interface MyService {
 
-    Response findUser(int id, BlockingQueue<User> queue);
+    SyncResponse findUser(int id);
 
-    Response generateSession(BlockingQueue<Session> queue);
+    SyncResponse generateSession();
+
+
 }

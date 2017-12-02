@@ -4,9 +4,9 @@ import lombok.Value;
 
 @Value
 public class Session {
-    private double id;
+    private int id;
 
     public Session() {
-        this.id = Math.random();
+        this.id = (int) (Math.random() * 10);
     }
 }
