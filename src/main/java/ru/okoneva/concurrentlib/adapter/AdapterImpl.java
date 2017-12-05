@@ -11,6 +11,8 @@ import ru.okoneva.concurrentlib.service.MyService;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
@@ -23,7 +25,7 @@ public class AdapterImpl implements MyAdapter {
     private final MyService service = null;
 
     private final ReentrantLock userLock = new ReentrantLock();
-    private final Object userMutex = new Object();
+    private final Condition userCondition = userLock.newCondition();
     private final Queue<User> userQueue = new LinkedList<>();
     private final Object sessionMutex = new Object();
     private final Queue<Session> sessionQueue = new LinkedList<>();
@@ -39,24 +41,20 @@ public class AdapterImpl implements MyAdapter {
                 log.error("Получена ошибка {}", syncResponse.getMessage());
                 return User.DUMMY_USER();
             }
-            synchronized (userMutex) {
-                final Long timeBefore = System.currentTimeMillis();
-                while (userQueue.isEmpty()&& System.currentTimeMillis() - timeBefore < DEFAULT_TIMEOUT_MS) {
-                    try {
-                        userMutex.wait(DEFAULT_TIMEOUT_MS);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        throw new IllegalStateException("task interrupted", e);
-                    }
-                }
-                final User user = userQueue.poll();
-                if (user != null) {
-                    log.info("Юзер {} получена для {}", user, id);
-                } else {
-                    log.error("Время ожидания юзера истекло для {}", id);
-                }
-                return user;
+            final Long timeBefore = System.currentTimeMillis();
+            while (userQueue.isEmpty() && System.currentTimeMillis() - timeBefore < DEFAULT_TIMEOUT_MS) {
+                userCondition.await(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             }
+            final User user = userQueue.poll();
+            if (user != null) {
+                log.info("Юзер {} получена для {}", user, id);
+            } else {
+                log.error("Время ожидания юзера истекло для {}", id);
+            }
+            return user;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            throw new IllegalStateException("task interrupted", e);
         } finally {
             log.info("Блокировка снята {}", id);
             userLock.unlock();
@@ -64,27 +62,28 @@ public class AdapterImpl implements MyAdapter {
     }
 
     public Session generateSession(final int taskId) {
-        log.info("Получена команда для создания сессии {}", taskId);
-        service.generateSession();
-        synchronized (sessionMutex) {
-            final Long timeBefore = System.currentTimeMillis();
-            while (sessionQueue.isEmpty() && System.currentTimeMillis() - timeBefore < DEFAULT_TIMEOUT_MS) {
-                try {
+        try {
+            log.info("Получена команда для создания сессии {}", taskId);
+            service.generateSession();
+            synchronized (sessionMutex) {
+                final Long timeBefore = System.currentTimeMillis();
+                while (sessionQueue.isEmpty() && System.currentTimeMillis() - timeBefore < DEFAULT_TIMEOUT_MS) {
                     log.info("Ждем сессию для {}", taskId);
                     sessionMutex.wait(DEFAULT_TIMEOUT_MS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    throw new IllegalStateException("task interrupted", e);
                 }
+                final Session poll = sessionQueue.poll();
+                if (poll != null) {
+                    log.info("Сессия получена для {}", taskId);
+                } else {
+                    log.error("Время ожидания сессии истекло для {}", taskId);
+                }
+                return poll;
             }
-            final Session poll = sessionQueue.poll();
-            if (poll != null) {
-                log.info("Сессия получена для {}", taskId);
-            } else {
-                log.error("Время ожидания сессии истекло для {}", taskId);
-            }
-            return poll;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            throw new IllegalStateException("task interrupted", e);
         }
+
     }
 
     @Override
@@ -96,16 +95,14 @@ public class AdapterImpl implements MyAdapter {
                 sessionMutex.notify();
             }
         } else if (response.isUser()) {
-            synchronized (userMutex) {
-                //если ждем ответ
-                if (userLock.isLocked()) {
-                    userQueue.add(response.getUser());
-                    log.info("Получен ожидаемый асинхронный ответ с юзером {}", response.getUser());
-                    userMutex.notify();
-                } else { //ответ пришел поздно
-                    log.info("Получен опоздавший асинхронный ответ с юзером {}", response.getUser());
-                }
+            if (userLock.isLocked()) {
+                userQueue.add(response.getUser());
+                log.info("Получен ожидаемый асинхронный ответ с юзером {}", response.getUser());
+                userCondition.signal();
+            } else { //ответ пришел поздно
+                log.info("Получен опоздавший асинхронный ответ с юзером {}", response.getUser());
             }
+
         }
     }
 }
