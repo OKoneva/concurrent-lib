@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.okoneva.concurrentlib.adapter.MyAdapter;
 import ru.okoneva.concurrentlib.domain.AsyncResponse;
+import ru.okoneva.concurrentlib.domain.RequestType;
 import ru.okoneva.concurrentlib.domain.Session;
 import ru.okoneva.concurrentlib.domain.SyncResponse;
 import ru.okoneva.concurrentlib.domain.User;
@@ -47,10 +48,10 @@ public class MyServiceImpl implements MyService {
     private void startUserSearch(final int id) {
         new Thread(() -> {
             try {
-                TimeUnit.MILLISECONDS.sleep(50);
+                TimeUnit.MILLISECONDS.sleep(1);
                 final User user = new User(id, "User_" + id);
                 log.info("Найден юзер {}", user);
-                adapter.putResult(new AsyncResponse(user, AsyncResponse.Type.USER));
+                adapter.putResult(new AsyncResponse(user, RequestType.USER));
             } catch (InterruptedException e) {
                 throw new IllegalStateException("task interrupted", e);
             }
@@ -61,7 +62,7 @@ public class MyServiceImpl implements MyService {
         new Thread(() -> {
             Callable<Session> task = () -> {
                 try {
-                    TimeUnit.MILLISECONDS.sleep(50);
+                    TimeUnit.MILLISECONDS.sleep(5);
                     return new Session();
                 } catch (InterruptedException e) {
                     throw new IllegalStateException("task interrupted", e);
@@ -70,7 +71,7 @@ public class MyServiceImpl implements MyService {
             final Session session;
             try {
                 session = executor.submit(task).get();
-                adapter.putResult(new AsyncResponse(session, AsyncResponse.Type.SESSION));
+                adapter.putResult(new AsyncResponse(session, RequestType.SESSION));
             } catch (InterruptedException | ExecutionException e) {
                 throw new IllegalStateException("task interrupted", e);
             }

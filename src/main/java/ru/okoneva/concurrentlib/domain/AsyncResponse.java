@@ -5,19 +5,14 @@ import lombok.Value;
 @Value
 public class AsyncResponse {
     private Object result;
-    private Type type;
-
-    public enum Type {
-        USER,
-        SESSION
-    }
+    private RequestType type;
 
     public boolean isUser() {
-        return type == Type.USER;
+        return type == RequestType.USER;
     }
 
     public boolean isSession() {
-        return type == Type.SESSION;
+        return type == RequestType.SESSION;
     }
 
     public User getUser() {
