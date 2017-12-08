@@ -137,7 +137,7 @@ public class AdapterImpl implements MyAdapter {
                     holder.setValue(response.getResult());
                     log.info("Получен ожидаемый асинхронный ответ с объектом типа {}", type);
                     fullHolderQueue.get(type).add(holder);
-                    holder.getResponseCondition().signal();
+                    holder.getResponseCondition().signalAll();
                 } else { //ответ пришел поздно
                     log.info("Получен опоздавший асинхронный ответ с объектом типа {}", type);
                 }
@@ -147,7 +147,7 @@ public class AdapterImpl implements MyAdapter {
                 if (holder != null) {
                     holder.setValue(response.getResult());
                     log.info("Получен ожидаемый асинхронный ответ с объектом типа {}", type);
-                    holder.getResponseCondition().signal();
+                    holder.getResponseCondition().signalAll();
                 } else { //ответ пришел поздно
                     log.info("Получен опоздавший асинхронный ответ с объектом типа {}", type);
                 }
